@@ -1,79 +1,108 @@
-import streamlit as st # type: ignore
-from utils import *
+import streamlit as st
+import pandas as pd
+from utils2 import limpiar_y_procesar_datos
 from graficos import *
 
-# Configuración
+# --- CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(
+    page_title="Dashboard LesBi App",
+    page_icon="📊",
+    layout="centered"
+)
 
-st.set_page_config(layout="centered")
-st.title("Dashboard de LesBi App")
-# Cargar y limpiar datos
-data_file = "data/encuesta_mujeres.csv"
-df = pd.read_csv(data_file)
-df_clean, conteo_vinculos, conteo_actividades, conteo_bioseguridad, otros_actividades, otros_vinculos, otros_bioseguridad = limpiar_datos(df)
+# --- FUNCIÓN DE CARGA DE DATOS CON CACHÉ ---
+@st.cache_data # ¡Esta es la clave de la optimización!
+def cargar_datos(data_path):
+    """
+    Carga los datos desde un archivo CSV y los procesa.
+    El resultado se guarda en caché para no reprocesar en cada interacción.
+    """
+    df_raw = pd.read_csv(data_path)
+    return limpiar_y_procesar_datos(df_raw)
 
-# Sidebar de navegación
-st.sidebar.title("Navegación")
-tabs = [
-    "📊 Inicio - Visión General",
-    "🧑‍🤝‍🧑 Perfil y Características",
-    "🔄 Análisis Cruzado de Variables"
-]
-selected_tab = st.sidebar.radio("Ir a:", tabs)
+# --- CARGA DE DATOS ---
+# Llamamos a la función una sola vez. Streamlit gestionará el caché.
+(df_clean, conteo_vinculos, conteo_actividades, conteo_bioseguridad, 
+ otros_actividades, otros_vinculos, otros_bioseguridad) = cargar_datos("data/encuesta_mujeres.csv")
 
-# Tab 1: Introducción
+
+# --- UI PRINCIPAL ---
+st.title("Dashboard de Encuesta LesBi App")
+
+# --- SIDEBAR DE NAVEGACIÓN ---
+with st.sidebar:
+    st.title("Navegación")
+    tabs = [
+        "📊 Inicio - Visión General",
+        "🧑‍🤝‍🧑 Perfil y Características",
+        "🔄 Análisis Cruzado de Variables"
+    ]
+    selected_tab = st.radio("Ir a:", tabs)
+
+# --- CONTENIDO DE LOS TABS ---
 if selected_tab == "📊 Inicio - Visión General":
+    st.header("Visión General del Proyecto")
     st.markdown("""                
-        Bienvenidos al dashboard de Lesbi App. 
+        ¡Bienvenidxs al dashboard interactivo de Lesbi App! 
                 
-        En este espacio podrás explorar:
+        Este espacio está diseñado para explorar los resultados de nuestra encuesta y entender mejor a nuestra comunidad. Aquí podrás navegar por:
                 
-
-        👥 El perfil de nuestros participantes: Conociendo quiénes son, qué edad tienen y cómo se conectan con nuestro proyecto.
-
-        💡 Sus opiniones y percepciones: Qué piensan sobre nuestras propuestas y actividades, y cómo evalúan su experiencia.
-
-        🎭 Su participación en los eventos: Cómo viven y se sienten dentro de las actividades que organizamos.
-
-        ❤️ Áreas de mejora: Identificar oportunidades para seguir creciendo juntos y hacer de Lesbi App un proyecto cada vez más inclusivo y enriquecedor.
+        - **Perfil de participantes:** Quiénes son, qué edad tienen y cómo se conectan.
+        - **Opiniones y percepciones:** Qué piensan de las propuestas y cómo evalúan su experiencia.
+        - **Participación en eventos:** Cómo viven y sienten las actividades.
+        - **Áreas de mejora:** Oportunidades para seguir creciendo y hacer de Lesbi App un proyecto más inclusivo.
     """)
-    respuestas = len(df_clean)
-    st.subheader(f"Total de respuestas a la encuesta: {respuestas}")
+    st.subheader(f"Total de Respuestas Válidas: {len(df_clean)}")
+    st.info("Los datos han sido anonimizados y procesados para garantizar la privacidad de lxs participantes.")
 
-# Tab 2: Perfil y Características
 elif selected_tab == "🧑‍🤝‍🧑 Perfil y Características":
-    st.header("Análisis inicial encuestadxs") 
-    st.markdown("""Explora el perfil de quienes participan en Lesbi App: desde su identidad de género, edad y lugar de residencia, hasta sus experiencias y percepciones sobre el proyecto. Esta sección permite conocer mejor a la comunidad para atender sus necesidades y fortalecer sus vínculos, tanto de amistad como románticos.""")   
-    barras_columna = ['Identidad genero mapeada', 'Identidad genero mapeada', 'lugar_residencia_mapeada',  'Opinion apps no amorosas','Nivel educativo','apps_citas_mapeada']
-    torta_columnas = ['Grupo Etareo','recibir_novedades','Facilidad conocer LesBi', 'Facilidad conocer hetero']
-    barras_conteo = {
-    'Conteo actividades': conteo_actividades,
-    'Conteo vinculos': conteo_vinculos,
-    'Conteo Medidas bioseguridad': conteo_bioseguridad
+    st.header("Perfil de lxs Encuestadxs")
+    st.markdown("""
+    Explora el perfil de quienes participan en Lesbi App: desde su identidad de género, edad y lugar de residencia, hasta sus experiencias y percepciones sobre el proyecto.
+    """)
+
+    # Definimos qué tipo de gráfico usar para cada columna
+    columnas_torta = ['Grupo Etareo', 'recibir_novedades', 'Facilidad conocer LesBi', 'Facilidad conocer hetero']
+    columnas_barras = ['Identidad genero', 'Identidad personal', 'Lugar residencia', 'Opinion apps no amorosas', 'Nivel educativo', 'apps_citas_mapeada']
+    
+    # Creamos los gráficos de manera organizada
+    st.subheader("Características Demográficas y de Opinión")
+    for col in df_clean.columns:
+        if col in columnas_torta:
+            st.write(f"**{col}**")
+            plot_pie_chart(df_clean, col)
+        elif col in columnas_barras:
+            st.write(f"**{col}**")
+            plot_bar_chart_normalized(df_clean, col, orientacion='horizontal')
+
+    st.subheader("Preferencias de la Comunidad")
+    # Diccionario para iterar sobre los conteos pre-calculados
+    conteos_multiples = {
+        'Actividades Preferidas por la Comunidad': conteo_actividades,
+        'Tipos de Vínculos Buscados': conteo_vinculos,
+        'Medidas de Bioseguridad Solicitadas': conteo_bioseguridad
     }
 
-    for col in df_clean.columns:
-        if col in torta_columnas:
-            st.subheader(col)
-            grafico_torta(df_clean, col)
-        elif col in barras_columna:
-            st.subheader(col)
-            grafico_barras(df_clean, col, orientacion='horizontal')
-    for nombre, df_conteo in barras_conteo.items():
-        st.subheader(nombre)
-        grafico_barras_conteo2(df_conteo, 'opcion', 'cantidad')
-    st.write("Respuestas no matcheadas en actividades:")
-    st.write(otros_actividades)
-    st.write("Respuestas no matcheadas en vinculos:")
-    st.write(otros_vinculos)
-    st.write("Respuestas no matcheadas en bioseguridad:")
-    st.write(otros_bioseguridad)
+    for titulo, df_conteo in conteos_multiples.items():
+        st.write(f"**{titulo}**")
+        plot_bar_chart_from_count(df_conteo, 'opcion', 'cantidad')
 
+    # Mostramos las respuestas "otras" que no se pudieron agrupar
+    with st.expander("Ver respuestas 'Otras' no clasificadas"):
+        st.write("**Actividades no matcheadas:**", otros_actividades)
+        st.write("**Vínculos no matcheados:**", otros_vinculos)
+        st.write("**Bioseguridad no matcheada:**", otros_bioseguridad)
 
-# Tab 3: Cruces entre variables
 elif selected_tab == "🔄 Análisis Cruzado de Variables":
-    st.markdown("""Aquí podrás realizar análisis cruzados entre diferentes variables para descubrir patrones y relaciones dentro de la comunidad. Esta sección ayuda a identificar tendencias relevantes, puntos comunes y diferencias, aportando una visión más profunda que orienta las mejoras y nuevas propuestas para Lesbi App.""")
+    st.header("Análisis Cruzado de Variables")
+    st.markdown("""
+    Aquí podrás realizar análisis cruzados para descubrir patrones y relaciones dentro de la comunidad. 
+    Esta sección ayuda a identificar tendencias, orientando mejoras y nuevas propuestas.
+    """)
+    
+    # Este diccionario define qué cruces son lógicos o interesantes
     combinaciones_validas = {
-        'Identidad genero mapeada': [
+        'Identidad genero': [
             'Vinculos faltantes', 'Vinculos buscados', 'Facilidad conocer LesBi',
             'Facilidad conocer hetero', 'Opinion apps no amorosas',
             'Medidas bioseguridad', 'Actividades preferidas'
@@ -94,6 +123,7 @@ elif selected_tab == "🔄 Análisis Cruzado de Variables":
         ]
     }
 
-    graficos_cruzados(df_clean, combinaciones_validas)
+    plot_crosstab_chart(df_clean, combinaciones_validas)
 
-addFooter()
+# --- FOOTER ---
+add_footer()
