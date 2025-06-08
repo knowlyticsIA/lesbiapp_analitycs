@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import limpiar_y_procesar_datos
+import json
 from graficos import *
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
@@ -10,36 +10,64 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- FUNCIÓN DE CARGA DE DATOS CON CACHÉ ---
-@st.cache_data # ¡Esta es la clave de la optimización!
-def cargar_datos(data_path):
+# --- FUNCIÓN DE CARGA DE DATOS PRE-PROCESADOS ---
+@st.cache_data 
+def cargar_datos_preprocesados():
     """
-    Carga los datos desde un archivo CSV y los procesa.
-    El resultado se guarda en caché para no reprocesar en cada interacción.
+    Carga los datos ya limpios desde los archivos Parquet y JSON.
+    Esta función es extremadamente rápida.
     """
-    df_raw = pd.read_csv(data_path)
-    return limpiar_y_procesar_datos(df_raw)
+    try:
+        df_clean = pd.read_parquet("data/cleaned_data.parquet")
+        conteo_vinculos = pd.read_parquet("data/conteo_vinculos.parquet")
+        conteo_actividades = pd.read_parquet("data/conteo_actividades.parquet")
+        conteo_bioseguridad = pd.read_parquet("data/conteo_bioseguridad.parquet")
+        
+        with open("data/otras_respuestas.json", 'r', encoding='utf-8') as f:
+            otras_data = json.load(f)
+        
+        otros_actividades = otras_data['actividades']
+        otros_vinculos = otras_data['vinculos']
+        otros_bioseguridad = otras_data['bioseguridad']
+
+        return (
+            df_clean, 
+            conteo_vinculos, 
+            conteo_actividades, 
+            conteo_bioseguridad, 
+            otros_actividades, 
+            otros_vinculos, 
+            otros_bioseguridad
+        )
+    except FileNotFoundError:
+        st.error(
+            "🛑 No se encontraron los archivos de datos pre-procesados. "
+            "Por favor, ejecuta el script 'python preprocesar_datos.py' en tu terminal primero."
+        )
+        return None, None, None, None, None, None, None
 
 # --- CARGA DE DATOS ---
-# Llamamos a la función una sola vez. Streamlit gestionará el caché.
-(df_clean, conteo_vinculos, conteo_actividades, conteo_bioseguridad, 
- otros_actividades, otros_vinculos, otros_bioseguridad) = cargar_datos("data/encuesta_mujeres.csv")
+with st.spinner('Cargando datos del dashboard...'):
+    (df_clean, conteo_vinculos, conteo_actividades, conteo_bioseguridad, 
+     otros_actividades, otros_vinculos, otros_bioseguridad) = cargar_datos_preprocesados()
 
 
 # --- UI PRINCIPAL ---
-st.title("Dashboard de Encuesta LesBi App")
+# Solo se muestra el dashboard si los datos se cargaron correctamente
+if df_clean is not None:
+    st.title("Dashboard de Encuesta LesBi App")
 
-# --- SIDEBAR DE NAVEGACIÓN ---
-with st.sidebar:
-    st.title("Navegación")
-    tabs = [
-        "📊 Inicio - Visión General",
-        "🧑‍🤝‍🧑 Perfil y Características",
-        "🔄 Análisis Cruzado de Variables"
-    ]
-    selected_tab = st.radio("Ir a:", tabs)
+    # --- SIDEBAR DE NAVEGACIÓN ---
+    with st.sidebar:
+        st.title("Navegación")
+        tabs = [
+            "📊 Inicio - Visión General",
+            "🧑‍🤝‍🧑 Perfil y Características",
+            "🔄 Análisis Cruzado de Variables"
+        ]
+        selected_tab = st.radio("Ir a:", tabs)
 
-# --- CONTENIDO DE LOS TABS ---
+   # --- CONTENIDO DE LOS TABS ---
 if selected_tab == "📊 Inicio - Visión General":
     st.header("Visión General del Proyecto")
     st.markdown("""                
