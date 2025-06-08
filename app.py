@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils2 import limpiar_y_procesar_datos
+from utils import limpiar_y_procesar_datos
 from graficos import *
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
