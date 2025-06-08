@@ -2,30 +2,43 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import streamlit as st
+import plotly.express as px
 
 # Paleta de colores definida como una constante para reutilizarla
 PALETA_PASTEL_LGBTIQ = [
-    "#FFA8A8", "#FFD8A8", "#FFF2A8", "#A8E6A3",
-    "#A8D0FF", "#D2A8FF", "#FFB3DE"
+    "#0077BB",  # Azul
+    "#EE7733",  # Naranja
+    "#009988",  # Turquesa
+    "#CC3311",  # Rojo Ladrillo
+    "#BBBBBB",  # Gris
+    "#EE3377",  # Magenta
+    "#33BBEE",  # Cian
 ]
 
 def plot_pie_chart(df, columna):
-    """Genera y muestra un gráfico de torta para una columna del DataFrame."""
-    fig, ax = plt.subplots(figsize=(4, 4))
-    counts = df[columna].value_counts()
-    palette = PALETA_PASTEL_LGBTIQ[:len(counts)]
-    
+    """
+    Genera y muestra un gráfico de torta para una columna del DataFrame.
+    Si la columna tiene un orden de categoría, lo respeta en la leyenda.
+    """
+    fig, ax = plt.subplots(figsize=(5, 5)) 
+
+    if pd.api.types.is_categorical_dtype(df[columna]) and df[columna].cat.ordered:
+        counts = df[columna].value_counts(sort=False)
+    else:
+        counts = df[columna].value_counts()
+    total = counts.sum()
+    legend_labels = [f'{label} ({count/total:.1%})' for label, count in counts.items()]
     wedges, _ = ax.pie(
         counts,
         labels=None,
         startangle=90,
-        colors=palette,
-        wedgeprops={'edgecolor': 'black'}
+        colors=PALETA_PASTEL_LGBTIQ[:len(counts)],
+        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
     )
     ax.set_ylabel("")
     ax.legend(
         wedges,
-        counts.index,
+        legend_labels, 
         title="Categorías",
         loc="center left",
         bbox_to_anchor=(1, 0, 0.5, 1)
@@ -33,20 +46,30 @@ def plot_pie_chart(df, columna):
     st.pyplot(fig)
 
 def plot_bar_chart_normalized(df, col, orientacion='horizontal'):
-    """Genera y muestra un gráfico de barras con porcentajes para una columna, ordenado de mayor a menor."""
+    """
+    Genera un gráfico de barras con porcentajes.
+    Si la columna tiene un orden de categoría definido, lo respeta.
+    Si no, ordena las barras de mayor a menor por porcentaje.
+    """
     if col in df.columns:
-        # Los datos ya se ordenan aquí
-        conteo = df[col].value_counts(normalize=True).sort_values(ascending=False) * 100
+        if pd.api.types.is_categorical_dtype(df[col]) and df[col].cat.ordered:
+            # Si tiene orden, lo respetamos. Usamos sort=False.
+            conteo = df[col].value_counts(normalize=True, sort=True) * 100
+            # seaborn usará el orden de la categoría automáticamente
+            order_param = conteo.index 
+        else:
+            # Si no tiene orden, ordenamos por valor (de mayor a menor)
+            conteo = df[col].value_counts(normalize=True).sort_values(ascending=False) * 100
+            order_param = conteo.index
+
         fig, ax = plt.subplots(figsize=(8, 4.5))
         
         if orientacion == 'horizontal':
-            # Pasamos el índice ordenado al parámetro 'order' para garantizar la visualización
-            sns.barplot(x=conteo.values, y=conteo.index, ax=ax, palette="crest", order=conteo.index)
+            sns.barplot(x=conteo.values, y=conteo.index, ax=ax, palette="crest", order=order_param)
             ax.set_xlabel("% de respuestas")
             ax.set_ylabel("")
         else:
-            # Hacemos lo mismo para el gráfico vertical
-            sns.barplot(x=conteo.index, y=conteo.values, ax=ax, palette="crest", order=conteo.index)
+            sns.barplot(x=conteo.index, y=conteo.values, ax=ax, palette="crest", order=order_param)
             ax.set_ylabel("% de respuestas")
             ax.set_xlabel("")
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
@@ -95,15 +118,10 @@ def plot_crosstab_chart(df, combinaciones_validas, colormap="Set2"):
         df_clean = df[[columna_segmento, columna_objetivo]].dropna()
         tabla = pd.crosstab(df_clean[columna_objetivo], df_clean[columna_segmento], normalize='columns') * 100
         df_plot = tabla.round(1).reset_index().melt(id_vars=columna_objetivo, var_name=columna_segmento, value_name='Porcentaje')
-
-        # --- INICIO DE LA MODIFICACIÓN ---
-        # 1. Calcular el orden: Agrupamos por categoría del eje Y, sumamos sus porcentajes y ordenamos.
         order_of_categories = df_plot.groupby(columna_objetivo)['Porcentaje'].sum().sort_values(ascending=False).index
-        # --- FIN DE LA MODIFICACIÓN ---
 
         fig, ax = plt.subplots(figsize=(8, 6))
         
-        # 2. Pasamos el orden calculado al parámetro 'order' del gráfico.
         sns.barplot(
             data=df_plot, 
             x='Porcentaje', 
@@ -111,7 +129,7 @@ def plot_crosstab_chart(df, combinaciones_validas, colormap="Set2"):
             hue=columna_segmento, 
             palette=colormap, 
             ax=ax,
-            order=order_of_categories # <-- Aquí aplicamos el orden
+            order=order_of_categories 
         )
 
         ax.set_xlabel("Porcentaje (%)")
@@ -137,3 +155,64 @@ def add_footer():
         © 2025 KnowLytics IA | <a href="mailto:knowlytics.ia@gmail.com">knowlytics.ia@gmail.com</a>
     </div>
     """, unsafe_allow_html=True)
+
+def create_scatter_figure(df, var_x, var_y, var_color, valores_dispersion):
+    """
+    Crea y devuelve una figura de dispersión 2D de Plotly.
+    Esta función no contiene elementos de la interfaz de Streamlit.
+    """
+    if df is None or df.empty or var_x not in df.columns or var_y not in df.columns:
+        # Si no hay datos o las columnas no existen, no se puede graficar.
+        return None
+
+    # Creamos el gráfico con los datos y selecciones recibidas
+    fig = px.scatter(
+        df.dropna(subset=[var_x, var_y]),
+        x=var_x,
+        y=var_y,
+        color=var_color,
+        title=f'Dispersión: {var_x.replace(" Num", "")} vs {var_y.replace(" Num", "")}',
+        labels={
+            var_x: var_x.replace(' Num', ''),
+            var_y: var_y.replace(' Num', '')
+        },
+        hover_data=['Grupo Etareo', 'Lugar residencia']
+    )
+
+    # Actualizamos los ejes para que muestren el texto de las categorías
+    fig.update_xaxes(tickvals=list(valores_dispersion.values()), ticktext=list(valores_dispersion.keys()))
+    fig.update_yaxes(tickvals=list(valores_dispersion.values()), ticktext=list(valores_dispersion.keys()))
+
+    return fig # La función ahora devuelve la figura
+
+def create_categorical_bubble_chart(df_agg, x_col, y_col, size_col, color_col, title):
+    """
+    Crea un gráfico de burbujas categórico donde el tamaño y el color
+    representan métricas agregadas.
+    """
+    if df_agg is None or df_agg.empty:
+        return None
+
+    fig = px.scatter(
+        df_agg,
+        x=x_col,
+        y=y_col,
+        size=size_col,          # El tamaño de la burbuja es el conteo de personas
+        color=color_col,        # El color es el promedio de facilidad
+        hover_name=x_col,
+        size_max=50,            # Tamaño máximo de la burbuja más grande
+        title=title,
+        color_continuous_scale=px.colors.sequential.Viridis, # Paleta de color (cálido = alto)
+        labels={
+            color_col: "Facilidad Promedio",
+            size_col: "Nº de Respuestas"
+        }
+    )
+    
+    fig.update_layout(
+        xaxis_title=x_col,
+        yaxis_title=y_col,
+        coloraxis_colorbar_title='Facilidad<br>Promedio' # Título de la barra de color
+    )
+    
+    return fig

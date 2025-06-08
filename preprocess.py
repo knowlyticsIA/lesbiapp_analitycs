@@ -1,11 +1,10 @@
 import pandas as pd
 import json
-from utils2 import limpiar_y_procesar_datos 
+from utils import limpiar_y_procesar_datos 
 
 def main():
     ruta_csv_crudo = "data/encuesta_mujeres.csv"
     
-    # Nombres de los archivos de salida
     ruta_df_limpio = "data/cleaned_data.parquet"
     ruta_conteo_vinculos = "data/conteo_vinculos.parquet"
     ruta_conteo_actividades = "data/conteo_actividades.parquet"
@@ -31,7 +30,6 @@ def main():
     ) = limpiar_y_procesar_datos(df_raw)
     print("✅ Datos procesados.")
 
-    # 3. Guardar los DataFrames procesados en formato Parquet
     try:
         df_clean.to_parquet(ruta_df_limpio)
         print(f"   -> Guardado: '{ruta_df_limpio}'")

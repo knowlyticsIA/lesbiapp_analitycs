@@ -5,7 +5,7 @@ COLUMNAS_RENOMBRADAS = {
     '¿Cómo te identificas en relación con el genero femenino?  ': "Identidad genero",
     '¿Con cuál de las siguientes identidades te sentís más identificada?': "Identidad personal",
     '¿Dónde vivís actualmente?': "Lugar residencia",
-    '¿Cuál es tu Nivel educativo alcanzado?': "Nivel educativo",
+    '¿Cuál es tu nivel educativo alcanzado?': "Nivel educativo",
     '¿Con quien vivís?': "Convivencia",
     ' ¿Qué edad tenés? ': "edad",
     '¿Qué tipo de vínculos estás buscando actualmente con otras mujeres?': "Vinculos buscados",
@@ -45,7 +45,35 @@ MAP_APPS_CITAS = {
     "Nunca use apps de ese estilo para conocer a otras mujeres, pero me interesaria": "No, pero quiero",
     "No, y no me interesa": "No"
 }
-
+MAPEO_ACTIVIDADES_AGRUPADAS = {
+    'Encuentros Sociales': [
+        'Encuentros o salidas grupales durante el día en mi zona (ej: picnics, paseos culturales, ferias)',
+        'Encuentros o salidas grupales durante la noche en mi zona  (ej: bares tranquilos, eventos culturales, cenas)',
+        'Grupos para organizar actividades deportivas o recreativas'
+    ],
+    'Fiestas':['Fiestas de mujeres'],
+    'Desarrollo y Cultura': [
+        'Charlas virtuales o presenciales',
+        'Foros o grupos temáticos (ej: literatura, cine, deportes, maternidad, emprendimiento, bienestar, etc.)',
+        'Espacios para compartir arte o escritura'
+    ],
+    'Recreación y Activismo': [
+        'Conocer mujeres militantes o activistas con las cuales vincularte'
+    ]
+}
+MAPEO_VINCULOS_AGRUPADOS = {
+    'Vínculos de Amistad solo LBT+': ['Amistades solo con mujeres que formen parte del colectivo LBT+'],
+    'Vínculos de Amistad solo hetero': ['Amistades solo con mujeres heterosexuales'],
+    'Vínculos de Amistad indistinto': ['Amistades con mujeres que estén dentro o fuera del colectivo LBT+'],
+    'Vínculos Sexo-Afectivos': [
+        'Redes de apoyo emocional o afectivos',
+        'Pareja o vínculo romántico/sexoafectivo',
+        'Sexo ocasional'
+    ],
+    'Participación Social': [
+        'Participar en actividades o encuentros sociales/culturales/recreativos'
+    ]
+}
 # --- DICCIONARIOS DE OPCIONES PARA PREGUNTAS MÚLTIPLES ---
 VINCULOS_OPCIONES = [
     "Amistades con mujeres que estén dentro o fuera del colectivo LBT+",
@@ -73,6 +101,24 @@ BIOSEGURIDAD_OPCIONES = [
     "Posibilidad de puntuar un evento o anfitriona, una vez finalizado el mismo"
 ]
 
+orden_facilidad = [
+    'Muy fácil',
+    'Algo Fácil',
+    'Difícil',
+    'Muy difícil',
+    'Imposible',
+    'Nunca lo intenté'
+]
+
+# El nuevo mapeo para convertir a números para el gráfico de dispersión
+MAPEO_FACILIDAD_NUM = {
+    'Muy fácil': 5,
+    'Algo Fácil': 4,
+    'Difícil': 3,
+    'Muy díficil': 2,
+    'Imposible': 1,
+    'Nunca lo intente': 0
+}
 # --- FUNCIONES AUXILIARES DE LIMPIEZA ---
 
 def _corregir_respuesta_otra(respuesta, opciones_validas, umbral=80):
@@ -90,14 +136,12 @@ def _corregir_respuesta_otra(respuesta, opciones_validas, umbral=80):
     if not respuesta or pd.isna(respuesta):
         return None
     
-    # process.extractOne devuelve (opción, puntaje). Nos quedamos con el mejor.
     mejor_match = process.extractOne(respuesta.lower(), [opt.lower() for opt in opciones_validas])
     
     if mejor_match and mejor_match[1] >= umbral:
-        # Devolvemos la opción canónica original (con mayúsculas/minúsculas correctas)
         index = [opt.lower() for opt in opciones_validas].index(mejor_match[0])
         return opciones_validas[index]
-    return respuesta # Si no hay buen match, devolvemos el texto original
+    return respuesta 
 
 def _procesar_respuestas_multiples(series, opciones_validas):
     """
@@ -114,20 +158,17 @@ def _procesar_respuestas_multiples(series, opciones_validas):
     conteo = {opcion: 0 for opcion in opciones_validas}
     respuestas_no_matcheadas = []
     
-    # Nos aseguramos de trabajar con strings y eliminamos nulos
     series = series.dropna().astype(str)
 
     for respuesta_completa in series:
-        # Separamos las distintas opciones elegidas por el usuario
         respuestas_individuales = [r.strip() for r in respuesta_completa.split(',')]
         
         for resp in respuestas_individuales:
-            # Intentamos corregir la respuesta comparándola con las opciones válidas
             resp_corregida = _corregir_respuesta_otra(resp, opciones_validas)
             
             if resp_corregida in opciones_validas:
                 conteo[resp_corregida] += 1
-            elif resp: # Si no es una cadena vacía
+            elif resp: 
                 respuestas_no_matcheadas.append(resp)
     
     df_conteo = pd.DataFrame(list(conteo.items()), columns=['opcion', 'cantidad'])
@@ -135,6 +176,24 @@ def _procesar_respuestas_multiples(series, opciones_validas):
     
     return df_conteo, list(set(respuestas_no_matcheadas))
 
+def _agrupar_respuestas_multiples(respuestas_str, mapeo):
+    """
+    Toma un string de respuestas separadas por comas y las agrupa
+    según un diccionario de mapeo. Devuelve un string de grupos únicos.
+    """
+    if pd.isna(respuestas_str):
+        return None
+    
+    respuestas_individuales = [r.strip() for r in respuestas_str.split(',')]
+    grupos_encontrados = set() # Usamos un set para evitar grupos duplicados
+
+    for resp in respuestas_individuales:
+        for grupo, lista_respuestas in mapeo.items():
+            if resp in lista_respuestas:
+                grupos_encontrados.add(grupo)
+                break # Pasamos a la siguiente respuesta individual
+    
+    return ', '.join(sorted(list(grupos_encontrados)))
 
 def limpiar_y_procesar_datos(df):
     """
@@ -146,7 +205,6 @@ def limpiar_y_procesar_datos(df):
     Returns:
         tuple: Contiene el DataFrame limpio y los diferentes conteos y listas de "otras".
     """
-    # 1. Renombrar columnas para facilitar el manejo
     df = df.rename(columns=COLUMNAS_RENOMBRADAS)
 
     # 2. Crear columna de grupo etario
@@ -155,18 +213,25 @@ def limpiar_y_procesar_datos(df):
     df['edad'] = pd.to_numeric(df['edad'], errors='coerce')
     df['Grupo Etareo'] = pd.cut(df['edad'], bins=bins, labels=labels, right=True)
 
-    # 3. Mapear valores de columnas categóricas a versiones limpias
     df["Identidad genero"] = df["Identidad genero"].map(MAP_GENERO).fillna("Otra")
     df["Identidad personal"] = df["Identidad personal"].map(MAP_IDENTIDAD).fillna("Otra")
     df["Lugar residencia"] = df["Lugar residencia"].map(MAP_RESIDENCIA).fillna("Otro")
     df["Apps citas"] = df["Apps citas"].map(MAP_APPS_CITAS).fillna("Otra")
 
-    # 4. Procesar columnas con respuestas múltiples y corregir "otras"
+    for col in ['Facilidad conocer LesBi', 'Facilidad conocer hetero']:
+        if col in df.columns:
+            df[col] = pd.Categorical(df[col], categories=orden_facilidad, ordered=True)
+
+    df['Facilidad LesBi Num'] = df['Facilidad conocer LesBi'].map(MAPEO_FACILIDAD_NUM)
+    df['Facilidad Hetero Num'] = df['Facilidad conocer hetero'].map(MAPEO_FACILIDAD_NUM)
+
+    df['Actividades Agrupadas'] = df['Actividades preferidas'].apply(_agrupar_respuestas_multiples, mapeo=MAPEO_ACTIVIDADES_AGRUPADAS)
+    df['Vinculos Agrupados'] = df['Vinculos buscados'].apply(_agrupar_respuestas_multiples, mapeo=MAPEO_VINCULOS_AGRUPADOS)
+  
     conteo_vinculos, otros_vinculos = _procesar_respuestas_multiples(df['Vinculos buscados'], VINCULOS_OPCIONES)
     conteo_actividades, otros_actividades = _procesar_respuestas_multiples(df['Actividades preferidas'], ACTIVIDADES_OPCIONES)
     conteo_bioseguridad, otros_bioseguridad = _procesar_respuestas_multiples(df['Medidas bioseguridad'], BIOSEGURIDAD_OPCIONES)
 
-    # 5. Quitar columnas que ya no se necesitan
     columnas_a_quitar = ['edad', 'Marca temporal', 'Dirección de correo electrónico']
     df_clean = df.drop(columns=[col for col in columnas_a_quitar if col in df.columns])
 

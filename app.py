@@ -50,24 +50,24 @@ def cargar_datos_preprocesados():
 with st.spinner('Cargando datos del dashboard...'):
     (df_clean, conteo_vinculos, conteo_actividades, conteo_bioseguridad, 
      otros_actividades, otros_vinculos, otros_bioseguridad) = cargar_datos_preprocesados()
-
+#Para ver las columnas mappeadas
+#if df_clean is not None:
+#    st.write("🕵️‍♂️ **Columnas disponibles en df_clean:**", df_clean.columns.tolist())
 
 # --- UI PRINCIPAL ---
-# Solo se muestra el dashboard si los datos se cargaron correctamente
 if df_clean is not None:
     st.title("Dashboard de Encuesta LesBi App")
 
-    # --- SIDEBAR DE NAVEGACIÓN ---
     with st.sidebar:
         st.title("Navegación")
         tabs = [
             "📊 Inicio - Visión General",
             "🧑‍🤝‍🧑 Perfil y Características",
-            "🔄 Análisis Cruzado de Variables"
+            "🔄 Análisis Cruzado de Variables",
+            "🔬 Análisis de Dispersión"
         ]
         selected_tab = st.radio("Ir a:", tabs)
 
-   # --- CONTENIDO DE LOS TABS ---
 if selected_tab == "📊 Inicio - Visión General":
     st.header("Visión General del Proyecto")
     st.markdown("""                
@@ -93,7 +93,6 @@ elif selected_tab == "🧑‍🤝‍🧑 Perfil y Características":
     columnas_torta = ['Grupo Etareo', 'recibir_novedades', 'Facilidad conocer LesBi', 'Facilidad conocer hetero']
     columnas_barras = ['Identidad genero', 'Identidad personal', 'Lugar residencia', 'Opinion apps no amorosas', 'Nivel educativo', 'apps_citas_mapeada']
     
-    # Creamos los gráficos de manera organizada
     st.subheader("Características Demográficas y de Opinión")
     for col in df_clean.columns:
         if col in columnas_torta:
@@ -104,7 +103,6 @@ elif selected_tab == "🧑‍🤝‍🧑 Perfil y Características":
             plot_bar_chart_normalized(df_clean, col, orientacion='horizontal')
 
     st.subheader("Preferencias de la Comunidad")
-    # Diccionario para iterar sobre los conteos pre-calculados
     conteos_multiples = {
         'Actividades Preferidas por la Comunidad': conteo_actividades,
         'Tipos de Vínculos Buscados': conteo_vinculos,
@@ -115,7 +113,6 @@ elif selected_tab == "🧑‍🤝‍🧑 Perfil y Características":
         st.write(f"**{titulo}**")
         plot_bar_chart_from_count(df_conteo, 'opcion', 'cantidad')
 
-    # Mostramos las respuestas "otras" que no se pudieron agrupar
     with st.expander("Ver respuestas 'Otras' no clasificadas"):
         st.write("**Actividades no matcheadas:**", otros_actividades)
         st.write("**Vínculos no matcheados:**", otros_vinculos)
@@ -128,30 +125,80 @@ elif selected_tab == "🔄 Análisis Cruzado de Variables":
     Esta sección ayuda a identificar tendencias, orientando mejoras y nuevas propuestas.
     """)
     
-    # Este diccionario define qué cruces son lógicos o interesantes
     combinaciones_validas = {
+        'Grupo Etareo': [
+            'Nivel educativo', 'Convivencia', 'Vinculos Agrupados', 
+            'Facilidad conocer LesBi', 'Facilidad conocer hetero', 'Opinion apps no amorosas',
+            'Medidas bioseguridad', 'Actividades Agrupadas',
+            'Lugar residencia', 'Recibir novedades'
+        ],
         'Identidad genero': [
-            'Vinculos faltantes', 'Vinculos buscados', 'Facilidad conocer LesBi',
-            'Facilidad conocer hetero', 'Opinion apps no amorosas',
-            'Medidas bioseguridad', 'Actividades preferidas'
+            'Vinculos Agrupados', 
+            'Facilidad conocer LesBi', 'Facilidad conocer hetero',
+            'Opinion apps no amorosas', 'Medidas bioseguridad',
+            'Actividades Agrupadas' 
         ],
         'Identidad personal': [
-            'Vinculos faltantes', 'Vinculos buscados', 'Facilidad conocer LesBi',
-            'Facilidad conocer hetero', 'Opinion apps no amorosas',
-            'Medidas bioseguridad', 'Actividades preferidas', 'Lugar residencia', 'Recibir novedades'
+            'Vinculos Agrupados', 
+            'Facilidad conocer LesBi', 'Facilidad conocer hetero',
+            'Opinion apps no amorosas', 'Medidas bioseguridad',
+            'Actividades Agrupadas', 
+            'Lugar residencia', 'Recibir novedades'
         ],
         'Apps citas': [
-            'Vinculos faltantes', 'Vinculos buscados', 'Facilidad conocer LesBi',
-            'Facilidad conocer hetero', 'Opinion apps no amorosas', 'Nivel educativo'
-        ],
-        'Grupo Etareo': [
-            'Nivel educativo', 'Convivencia', 'Vinculos faltantes', 'Vinculos buscados',
-            'Facilidad conocer LesBi', 'Facilidad conocer hetero', 'Opinion apps no amorosas',
-            'Medidas bioseguridad', 'Actividades preferidas', 'Lugar residencia', 'Recibir novedades'
+            'Vinculos Agrupados', 
+            'Facilidad conocer LesBi', 'Facilidad conocer hetero',
+            'Opinion apps no amorosas', 'Nivel educativo'
         ]
     }
-
     plot_crosstab_chart(df_clean, combinaciones_validas)
 
-# --- FOOTER ---
+elif selected_tab == "🔬 Análisis de Dispersión":
+    st.header("Análisis de Dispersión por Facilidad")
+    st.markdown("""
+    Esta sección te permite explorar la relación entre la facilidad para conocer a la comunidad LBT+ y a la comunidad heterosexual.
+    
+    Usa los selectores para definir los ejes y elige una tercera variable para colorear los puntos y descubrir patrones visuales.
+    """)
+    st.subheader("Selección de Variables")
+    opciones_color = ['Facilidad LesBi Num', 'Facilidad Hetero Num']
+    opciones_ejes = [
+        'Lugar residencia', 
+        'Grupo Etareo', 
+        'Identidad genero', 
+        'Identidad personal',
+        'Convivencia',
+        'Opinion apps no amorosas'
+    ]
+    col1, col2 = st.columns(2)
+    with col1:
+        var_x = st.selectbox("Elige la variable para el Eje X:", options=opciones_ejes, index=0, key='scatter_x')
+    with col2:
+        default_y_index = 1 if len(opciones_ejes) > 1 else 0
+        var_y = st.selectbox("Elige la variable para el Eje Y:", options=opciones_ejes, index=default_y_index)
+
+    if var_x != var_y:
+        df_lbt_agg = df_clean.groupby([var_x, var_y]).agg(
+            conteo=('Identidad personal', 'size'),
+            facilidad_promedio=('Facilidad LesBi Num', 'mean')
+        ).reset_index()
+
+        df_hetero_agg = df_clean.groupby([var_x, var_y]).agg(
+            conteo=('Identidad personal', 'size'),
+            facilidad_promedio=('Facilidad Hetero Num', 'mean')
+        ).reset_index()
+
+        fig_lbt = create_categorical_bubble_chart(df_lbt_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad LBT+')
+        fig_hetero = create_categorical_bubble_chart(df_hetero_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad Hetero')
+
+        if fig_lbt:
+            st.plotly_chart(fig_lbt, use_container_width=True)
+            st.divider() 
+            if fig_hetero:
+                st.plotly_chart(fig_hetero, use_container_width=True)
+    else:
+        st.warning("Por favor, selecciona dos variables diferentes para los ejes X e Y.")
+
+
+
 add_footer()
