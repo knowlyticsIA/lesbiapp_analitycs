@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 from graficos import *
+from utils import *
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -159,6 +160,8 @@ elif selected_tab == "🔬 Análisis de Dispersión":
     Esta sección te permite explorar la relación entre la facilidad para conocer a la comunidad LBT+ y a la comunidad heterosexual.
     
     Usa los selectores para definir los ejes y elige una tercera variable para colorear los puntos y descubrir patrones visuales.
+                
+    st.info("ℹ️ **Nota sobre el color:** Una burbuja más clara (amarilla) indica mayor facilidad, mientras que una más oscura (violeta) indica mayor dificultad.", icon="ℹ️")
     """)
     st.subheader("Selección de Variables")
     opciones_color = ['Facilidad LesBi Num', 'Facilidad Hetero Num']
@@ -188,9 +191,9 @@ elif selected_tab == "🔬 Análisis de Dispersión":
             facilidad_promedio=('Facilidad Hetero Num', 'mean')
         ).reset_index()
 
-        fig_lbt = create_categorical_bubble_chart(df_lbt_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad LBT+')
-        fig_hetero = create_categorical_bubble_chart(df_hetero_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad Hetero')
-
+        fig_lbt = create_categorical_bubble_chart(df_lbt_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad LBT+', MAPEO_FACILIDAD_NUM)
+        fig_hetero = create_categorical_bubble_chart(df_hetero_agg, var_x, var_y, 'conteo', 'facilidad_promedio', 'Facilidad para Conocer Comunidad Hetero', MAPEO_FACILIDAD_NUM)
+        
         if fig_lbt:
             st.plotly_chart(fig_lbt, use_container_width=True)
             st.divider() 

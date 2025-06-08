@@ -156,43 +156,18 @@ def add_footer():
     </div>
     """, unsafe_allow_html=True)
 
-def create_scatter_figure(df, var_x, var_y, var_color, valores_dispersion):
-    """
-    Crea y devuelve una figura de dispersión 2D de Plotly.
-    Esta función no contiene elementos de la interfaz de Streamlit.
-    """
-    if df is None or df.empty or var_x not in df.columns or var_y not in df.columns:
-        # Si no hay datos o las columnas no existen, no se puede graficar.
-        return None
-
-    # Creamos el gráfico con los datos y selecciones recibidas
-    fig = px.scatter(
-        df.dropna(subset=[var_x, var_y]),
-        x=var_x,
-        y=var_y,
-        color=var_color,
-        title=f'Dispersión: {var_x.replace(" Num", "")} vs {var_y.replace(" Num", "")}',
-        labels={
-            var_x: var_x.replace(' Num', ''),
-            var_y: var_y.replace(' Num', '')
-        },
-        hover_data=['Grupo Etareo', 'Lugar residencia']
-    )
-
-    # Actualizamos los ejes para que muestren el texto de las categorías
-    fig.update_xaxes(tickvals=list(valores_dispersion.values()), ticktext=list(valores_dispersion.keys()))
-    fig.update_yaxes(tickvals=list(valores_dispersion.values()), ticktext=list(valores_dispersion.keys()))
-
-    return fig # La función ahora devuelve la figura
-
-def create_categorical_bubble_chart(df_agg, x_col, y_col, size_col, color_col, title):
+def create_categorical_bubble_chart(df_agg, x_col, y_col, size_col, color_col, title,mapa_valores_color):
     """
     Crea un gráfico de burbujas categórico donde el tamaño y el color
     representan métricas agregadas.
     """
     if df_agg is None or df_agg.empty:
         return None
+    mapa_inverso = {v: k for k, v in mapa_valores_color.items()}
 
+    # Obtenemos los valores mínimo y máximo de la escala de color para etiquetarlos
+    min_val = df_agg[color_col].min()
+    max_val = df_agg[color_col].max()
     fig = px.scatter(
         df_agg,
         x=x_col,
@@ -212,7 +187,13 @@ def create_categorical_bubble_chart(df_agg, x_col, y_col, size_col, color_col, t
     fig.update_layout(
         xaxis_title=x_col,
         yaxis_title=y_col,
-        coloraxis_colorbar_title='Facilidad<br>Promedio' # Título de la barra de color
+        # Personalizamos la barra de color
+        coloraxis_colorbar=dict(
+            title="Facilidad Promedio",
+            # Mostramos etiquetas en los puntos clave de la barra
+            tickvals=[min_val, max_val],
+            ticktext=[f"Más Difícil ({mapa_inverso.get(min_val, '')})", f"Más Fácil ({mapa_inverso.get(max_val, '')})"]
+        )
     )
     
     return fig
