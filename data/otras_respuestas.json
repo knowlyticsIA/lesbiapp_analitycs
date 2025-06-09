@@ -1,23 +1,24 @@
 {
     "actividades": [
-        "cine",
-        "ferias)",
-        "etc.)",
         "bienestar",
-        "deportes",
         "emprendimiento",
-        "paseos culturales",
-        "eventos culturales",
         "cenas)",
-        "maternidad"
+        "eventos culturales",
+        "etc.)",
+        "ferias)",
+        "maternidad",
+        "deportes",
+        "cine",
+        "paseos culturales"
     ],
     "vinculos": [
-        "armar red",
+        "Grupos de contención / espacios seguros",
         "ninguno",
-        "sentirme libre de explorar mi identidad lesbica.",
-        "lesbianas y no binaries",
         "Relaciones Casuales",
-        "Grupos de contención / espacios seguros"
+        "lesbianas y no binaries",
+        "armar red",
+        "Amistades con mujeres bisexuales que sean madres",
+        "sentirme libre de explorar mi identidad lesbica."
     ],
     "bioseguridad": []
 }

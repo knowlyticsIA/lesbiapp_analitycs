@@ -5,12 +5,12 @@ COLUMNAS_RENOMBRADAS = {
     '¿Cómo te identificas en relación con el genero femenino?  ': "Identidad genero",
     '¿Con cuál de las siguientes identidades te sentís más identificada?': "Identidad personal",
     '¿Dónde vivís actualmente?': "Lugar residencia",
-    '¿Cuál es tu nivel educativo alcanzado?': "Nivel educativo",
+    '¿Cuál es tu nivel educativo alcanzado?': 'Nivel educativo', # Corregido por si acaso
     '¿Con quien vivís?': "Convivencia",
     ' ¿Qué edad tenés? ': "edad",
     '¿Qué tipo de vínculos estás buscando actualmente con otras mujeres?': "Vinculos buscados",
-    '*PARA QUIENES SE CONSIDERAN LESBIANAS O BISEXUALES:\n¿Qué tan fácil te resulta conocer a otras mujeres lesbianas o bisexuales en tu zona?': "Facilidad conocer LesBi",
-    '*PARA QUIENES SE CONSIDERAN HETEROSEXUALES\n¿Qué tan fácil te resulta conocer a otras mujeres para entablar nuevas amistades?': "Facilidad conocer hetero",
+    '*PARA QUIENES SE CONSIDERAN LESBIANAS O BISEXUALES:\r\n¿Qué tan fácil te resulta conocer a otras mujeres lesbianas o bisexuales en tu zona?': "Facilidad conocer LesBi",
+    '*PARA QUIENES SE CONSIDERAN HETEROSEXUALES\r\n¿Qué tan fácil te resulta conocer a otras mujeres para entablar nuevas amistades?': "Facilidad conocer hetero",
     '¿Usaste alguna vez apps tipo Tinder, Ok Cupid, Happn o redes sociales para conocer a otras mujeres? ': "Apps citas",
     '¿Qué sentís que te falta hoy en cuanto a vínculos con otras mujeres?': "Vinculos faltantes",
     '¿Cómo te sentirías usando una aplicación pensada exclusivamente para fomentar vínculos entre mujeres que no se centre en lo amoroso?': "Opinion apps no amorosas",
@@ -103,7 +103,7 @@ BIOSEGURIDAD_OPCIONES = [
 
 orden_facilidad = [
     'Muy fácil',
-    'Algo Fácil',
+    'Algo fácil',
     'Difícil',
     'Muy difícil',
     'Imposible',
@@ -113,7 +113,7 @@ orden_facilidad = [
 # El nuevo mapeo para convertir a números para el gráfico de dispersión
 MAPEO_FACILIDAD_NUM = {
     'Muy fácil': 5,
-    'Algo Fácil': 4,
+    'Algo fácil': 4,
     'Difícil': 3,
     'Muy díficil': 2,
     'Imposible': 1,
