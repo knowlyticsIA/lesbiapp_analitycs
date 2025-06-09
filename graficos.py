@@ -47,29 +47,41 @@ def plot_pie_chart(df, columna):
 
 def plot_bar_chart_normalized(df, col, orientacion='horizontal'):
     """
-    Genera un gráfico de barras con porcentajes.
-    Si la columna tiene un orden de categoría definido, lo respeta.
-    Si no, ordena las barras de mayor a menor por porcentaje.
+    Genera un gráfico de barras con porcentajes y AÑADE ETIQUETAS
+    con el valor exacto en cada barra.
     """
     if col in df.columns:
         if pd.api.types.is_categorical_dtype(df[col]) and df[col].cat.ordered:
-            # Si tiene orden, lo respetamos. Usamos sort=False.
-            conteo = df[col].value_counts(normalize=True, sort=True) * 100
-            # seaborn usará el orden de la categoría automáticamente
+            conteo = df[col].value_counts(normalize=True, sort=False) * 100
             order_param = conteo.index 
         else:
-            # Si no tiene orden, ordenamos por valor (de mayor a menor)
             conteo = df[col].value_counts(normalize=True).sort_values(ascending=False) * 100
             order_param = conteo.index
-
-        fig, ax = plt.subplots(figsize=(8, 4.5))
+        fig, ax = plt.subplots(figsize=(8, 5))
         
         if orientacion == 'horizontal':
-            sns.barplot(x=conteo.values, y=conteo.index, ax=ax, palette="crest", order=order_param)
+            barplot = sns.barplot(x=conteo.values, y=conteo.index, ax=ax, palette=PALETA_PASTEL_LGBTIQ, order=order_param)
+            for container in barplot.containers:
+                ax.bar_label(
+                    container,
+                    fmt='%.1f%%',
+                    padding=3,
+                    fontsize=10
+                )
+            ax.set_xlim(right=conteo.values.max() * 1.15)
             ax.set_xlabel("% de respuestas")
             ax.set_ylabel("")
-        else:
-            sns.barplot(x=conteo.index, y=conteo.values, ax=ax, palette="crest", order=order_param)
+        else: # Orientación vertical
+            barplot = sns.barplot(x=conteo.index, y=conteo.values, ax=ax, palette=PALETA_PASTEL_LGBTIQ, order=order_param)
+
+            for container in barplot.containers:
+                ax.bar_label(
+                    container,
+                    fmt='%.1f%%',
+                    padding=3,
+                    fontsize=10
+                )
+            ax.set_ylim(top=conteo.values.max() * 1.15)
             ax.set_ylabel("% de respuestas")
             ax.set_xlabel("")
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
